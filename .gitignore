@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+.venv*/
+data/
+*.db
+*.db-*
+*.session*
+*.log
+*.npy
+__pycache__/
+*.py[cod]
+_backup*/
+archive/
+work/
+.pytest_cache/

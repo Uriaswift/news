@@ -1,0 +1,21 @@
+[Unit]
+Description=Hermes Telegram News
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=hermes
+WorkingDirectory=/opt/hermes-news
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/hermes-news/.venv/bin/python /opt/hermes-news/hermes.py run
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=30
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
