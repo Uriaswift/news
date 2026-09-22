@@ -8,6 +8,7 @@ load_dotenv(BASE_DIR / '.env')
 DATA_DIR = Path(os.getenv('HERMES_DATA_DIR', 'data')).expanduser()
 if not DATA_DIR.is_absolute():
     DATA_DIR = BASE_DIR / DATA_DIR
+DATA_DIR = DATA_DIR.resolve()
 DB_DIR = DATA_DIR / 'db'
 DB_FILE = DB_DIR / 'news.db'
 EMBEDDINGS_DIR = DATA_DIR / 'embeddings'

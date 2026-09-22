@@ -123,7 +123,8 @@ class HermesTests(unittest.TestCase):
             self.assertEqual(c.execute("SELECT value FROM app_state WHERE key='last_successful_digest_at'").fetchone()[0],before)
 
     def test_portable_media(self):
-        from paths import resolve_media
+        from paths import resolve_media, DATA_DIR
+        self.assertEqual(DATA_DIR, DATA_DIR.resolve())
         folder=MEDIA_DIR/'photos'; folder.mkdir(parents=True,exist_ok=True)
         (folder/'image.jpg').write_bytes(b'test')
         self.assertEqual(resolve_media(r'D:\hermes-data\media\photos\image.jpg'),folder/'image.jpg')
