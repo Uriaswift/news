@@ -101,6 +101,27 @@ class HermesTests(unittest.TestCase):
             with self.assertRaises(RuntimeError): generator.main()
             client.assert_not_called()
 
+    def test_checkpoint_never_advances_past_recovered_posts(self):
+        from datetime import datetime, timezone
+        with database.connection(DB_FILE) as c:
+            c.execute("UPDATE app_state SET value='2026-09-22T12:00:00+00:00' WHERE key='last_successful_digest_at'")
+            c.execute("INSERT OR REPLACE INTO app_state VALUES ('collector_recovered_at','2026-09-22T12:30:00+00:00')")
+        with patch.object(generator,'now_utc',return_value=datetime(2026,9,22,13,tzinfo=timezone.utc)), patch.object(generator,'load_events',return_value=[]), patch.object(generator,'load_singles',return_value=[]):
+            generator.main()
+        with database.connection(DB_FILE) as c:
+            checkpoint=c.execute("SELECT value FROM app_state WHERE key='last_successful_digest_at'").fetchone()[0]
+        self.assertEqual(checkpoint,'2026-09-22T12:30:00+00:00')
+
+    def test_missing_recovery_preserves_checkpoint(self):
+        with database.connection(DB_FILE) as c:
+            c.execute("DELETE FROM app_state WHERE key='collector_recovered_at'")
+            before=c.execute("SELECT value FROM app_state WHERE key='last_successful_digest_at'").fetchone()[0]
+        with patch.object(generator.ollama,'Client') as client:
+            with self.assertRaises(RuntimeError): generator.main()
+            client.assert_not_called()
+        with database.connection(DB_FILE) as c:
+            self.assertEqual(c.execute("SELECT value FROM app_state WHERE key='last_successful_digest_at'").fetchone()[0],before)
+
     def test_portable_media(self):
         from paths import resolve_media
         folder=MEDIA_DIR/'photos'; folder.mkdir(parents=True,exist_ok=True)
