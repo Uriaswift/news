@@ -641,6 +641,12 @@ def generate(conn):
     end_time = min(now_utc(), datetime.fromisoformat(start_time) + timedelta(hours=1)).isoformat()
     if cursor.execute('SELECT 1 FROM digests WHERE sent_at IS NULL LIMIT 1').fetchone():
         raise RuntimeError('Send the pending digest before generating another one')
+    recovered = cursor.execute("SELECT value FROM app_state WHERE key='collector_recovered_at'").fetchone()
+    if not recovered:
+        raise RuntimeError('Waiting for initial collector recovery; the digest checkpoint is unchanged')
+    end_time = min(end_time, recovered[0])
+    if end_time <= start_time:
+        raise RuntimeError('Waiting for collector recovery to advance')
 
     print()
     print("=" * 80)

@@ -48,7 +48,7 @@ async def collect(login=False):
         if str(chat_id) == destination or ('@' + (chat.username or '')) == destination:
             return  # Never feed our own digests back into the collector.
         async with mutex:
-            with connection(DB_FILE, timeout=30) as conn:
+            with connection(DB_FILE, timeout=2) as conn:
                 if conn.execute('SELECT 1 FROM messages WHERE chat_id=? AND telegram_message_id=?', (chat_id, message.id)).fetchone():
                     return
             text = message.message or ''
@@ -68,7 +68,7 @@ async def collect(login=False):
                             media_path = Path(path).relative_to(MEDIA_DIR).as_posix()
                     except Exception as exc:
                         log.warning('Media download failed: %s', type(exc).__name__)
-            with connection(DB_FILE, timeout=30) as conn:
+            with connection(DB_FILE, timeout=2) as conn:
                 conn.execute('''INSERT OR IGNORE INTO messages
                     (telegram_message_id,chat_id,chat_title,chat_username,message_date,text,post_url,has_media,media_type,grouped_id,media_path)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?)''',
@@ -87,7 +87,7 @@ async def collect(login=False):
 
     async def recover():
         while True:
-            with connection(DB_FILE, timeout=30) as conn:
+            with connection(DB_FILE, timeout=2) as conn:
                 last = conn.execute("SELECT value FROM app_state WHERE key='collector_recovered_at'").fetchone()
                 if not last:
                     last = conn.execute('SELECT MAX(message_date) FROM messages').fetchone()
@@ -102,15 +102,15 @@ async def collect(login=False):
                     if message.date < cutoff:
                         break
                     await save(message, chat)
-            with connection(DB_FILE, timeout=30) as conn:
+            with connection(DB_FILE, timeout=2) as conn:
                 conn.execute("INSERT INTO app_state VALUES ('collector_recovered_at',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",(now.isoformat(),))
             log.info('Recovery complete')
             await asyncio.sleep(300)
 
     async def heartbeat():
         while True:
-            await client.get_me()  # Confirm the authenticated connection is responsive.
-            with connection(DB_FILE, timeout=30) as conn:
+            await asyncio.wait_for(client.get_me(), timeout=30)  # Confirm the authenticated connection is responsive.
+            with connection(DB_FILE, timeout=2) as conn:
                 conn.execute("INSERT INTO app_state VALUES ('collector_heartbeat',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (datetime.now(timezone.utc).isoformat(),))
             await asyncio.sleep(30)
 
@@ -121,6 +121,7 @@ async def collect(login=False):
             task.result()
         raise RuntimeError('Collector connection ended')
     finally:
+        client.remove_event_handler(handler)
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)

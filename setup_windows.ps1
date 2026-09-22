@@ -4,6 +4,7 @@ Set-Location -LiteralPath $PSScriptRoot
 $PythonPath = Join-Path $PSScriptRoot '.venv\Scripts\python.exe'
 if (Test-Path -LiteralPath (Join-Path $PSScriptRoot '.venv-portable\Scripts\python.exe')) { $PythonPath = Join-Path $PSScriptRoot '.venv-portable\Scripts\python.exe' }
 if (Test-Path -LiteralPath (Join-Path $PSScriptRoot '.venv-portable\Scripts\python.exe')) { $PythonPath = Join-Path $PSScriptRoot '.venv-portable\Scripts\python.exe' }
+if (Test-Path -LiteralPath (Join-Path $PSScriptRoot '.venv-portable\Scripts\python.exe')) { $PythonPath = Join-Path $PSScriptRoot '.venv-portable\Scripts\python.exe' }
 if (-not (Test-Path -LiteralPath $PythonPath)) {
     py -3 -m venv .venv
     if ($LASTEXITCODE -ne 0) { throw 'Install Python 3.11 or newer and retry.' }
